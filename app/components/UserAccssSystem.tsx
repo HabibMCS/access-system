@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import {  Menu, Clock,  Settings } from 'lucide-react';
-import { Layout, User, UserPlus, Activity } from 'lucide-react';
+import { Layout, User, UserPlus, Activity, Settings } from 'lucide-react';
 import { Card } from '../../components/ui/card';
 import DeviceManagement from './DeviceManagement';
 

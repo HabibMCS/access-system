@@ -53,7 +53,6 @@ const mockDevices = [
 
 const DeviceManagement = () => {
   const [devices, setDevices] = useState(mockDevices);
-  const [selectedDevice, setSelectedDevice] = useState(null);
   const [showAddDevice, setShowAddDevice] = useState(false);
   const [newDevice, setNewDevice] = useState({
     name: '',
@@ -77,12 +76,12 @@ const DeviceManagement = () => {
     return mockDevices;
   };
 
-  const updateDeviceSettings = async (deviceId, settings) => {
-    // Simulating API call
-    setDevices(devices.map(device => 
-      device.id === deviceId ? { ...device, ...settings } : device
-    ));
-  };
+//   const updateDeviceSettings = async (deviceId, settings) => {
+//     // Simulating API call
+//     setDevices(devices.map(device => 
+//       device.id === deviceId ? { ...device, ...settings } : device
+//     ));
+//   };
 
   const addNewDevice = async (device) => {
     // Simulating API call
