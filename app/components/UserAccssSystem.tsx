@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Layout, User, UserPlus, Activity, Settings } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import DeviceManagement from './DeviceManagement';
+
 
 interface MockUser {
   id: number;
@@ -316,7 +318,7 @@ const UserAccessSystem: React.FC = () => {
       {/* Sidebar */}
       <div className="w-64 bg-gray-800 text-white">
         <div className="p-4">
-          <h1 className="text-xl font-bold">Access System</h1>
+          <h1 className="text-xl font-bold">K E Y F L O W</h1>
         </div>
         <nav className="mt-4">
           <button
@@ -327,6 +329,15 @@ const UserAccessSystem: React.FC = () => {
           >
             <Layout size={20} />
             Dashboard
+          </button>
+          <button
+            onClick={() => setCurrentPage('devices')}
+            className={`w-full p-4 flex items-center gap-2 ${
+              currentPage === 'devices' ? 'bg-gray-700' : 'hover:bg-gray-700'
+            }`}
+          >
+            <Settings size={20} />
+            Devices
           </button>
           <button
             onClick={() => setCurrentPage('activity')}
@@ -355,15 +366,7 @@ const UserAccessSystem: React.FC = () => {
             <User size={20} />
             Profile
           </button>
-          <button
-            onClick={() => setCurrentPage('devices')}
-            className={`w-full p-4 flex items-center gap-2 ${
-              currentPage === 'devices' ? 'bg-gray-700' : 'hover:bg-gray-700'
-            }`}
-          >
-            <Settings size={20} />
-            Devices
-          </button>
+
         </nav>
       </div>
 
@@ -373,6 +376,7 @@ const UserAccessSystem: React.FC = () => {
         {currentPage === 'activity' && <UserActivity />}
         {currentPage === 'register' && <RegisterUser />}
         {currentPage === 'profile' && <Profile />}
+        {currentPage === 'devices' && <DeviceManagement />}
       </div>
     </div>
   );
