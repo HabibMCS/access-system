@@ -2,17 +2,45 @@
 
 import React, { useState } from 'react';
 import { Layout, User, UserPlus, Activity, Settings } from 'lucide-react';
-import { Card } from '../../components/ui/card';
-import DeviceManagement from './DeviceManagement';
+import { Card } from '@/components/ui/card';
+
+interface MockUser {
+  id: number;
+  name: string;
+  pin: string;
+  attendance: boolean;
+  inTime: string | null;
+  outTime: string | null;
+}
+
+interface UserDetails {
+  id: number;
+  name: string;
+  pin: string;
+  avgInTime: string;
+  avgOutTime: string;
+  absentDays: string[];
+  recentActivity: {
+    date: string;
+    inTime: string;
+    outTime: string;
+  }[];
+}
+
+interface AdminData {
+  name: string;
+  id: string;
+  users: MockUser[];
+}
 
 // Mock data for demonstration
-const mockUsers = [
+const mockUsers: MockUser[] = [
   { id: 1, name: 'John Doe', pin: '1234', attendance: true, inTime: '09:00', outTime: '17:00' },
   { id: 2, name: 'Jane Smith', pin: '5678', attendance: true, inTime: '08:45', outTime: '16:30' },
   { id: 3, name: 'Mike Johnson', pin: '9012', attendance: false, inTime: null, outTime: null },
 ];
 
-const mockUserDetails = {
+const mockUserDetails: UserDetails = {
   id: 1,
   name: 'John Doe',
   pin: '1234',
@@ -25,18 +53,18 @@ const mockUserDetails = {
   ]
 };
 
-const UserAccessSystem = () => {
-  const [authenticated, setAuthenticated] = useState(false);
-  const [currentPage, setCurrentPage] = useState('dashboard');
-  const [pin, setPin] = useState('');
-  const [adminData, setAdminData] = useState(null);
-  const [selectedUser, setSelectedUser] = useState(null);
+const UserAccessSystem: React.FC = () => {
+  const [authenticated, setAuthenticated] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState<string>('dashboard');
+  const [pin, setPin] = useState<string>('');
+  const [adminData, setAdminData] = useState<AdminData | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);
 
   // Keypad component
   const Keypad = () => {
-    const numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'];
+    const numbers: Array<string> = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'];
     
-    const handleKeyPress = (key) => {
+    const handleKeyPress = (key: string): void => {
       if (key === 'C') {
         setPin('');
       } else if (key === '⌫') {
@@ -163,10 +191,10 @@ const UserAccessSystem = () => {
 
   // Register User component
   const RegisterUser = () => {
-    const [newUserPin, setNewUserPin] = useState('');
-    const [newUserName, setNewUserName] = useState('');
+    const [newUserPin, setNewUserPin] = useState<string>('');
+    const [newUserName, setNewUserName] = useState<string>('');
 
-    const handleRegister = () => {
+    const handleRegister = (): void => {
       alert(`Registered user ${newUserName} with PIN ${newUserPin}`);
       setNewUserName('');
       setNewUserPin('');
@@ -214,10 +242,10 @@ const UserAccessSystem = () => {
 
   // Profile component
   const Profile = () => {
-    const [adminName, setAdminName] = useState('Admin User');
-    const [adminPin, setAdminPin] = useState('****');
+    const [adminName, setAdminName] = useState<string>('Admin User');
+    const [adminPin, setAdminPin] = useState<string>('****');
 
-    const handleUpdateProfile = () => {
+    const handleUpdateProfile = (): void => {
       alert('Profile updated successfully');
     };
 
@@ -288,67 +316,64 @@ const UserAccessSystem = () => {
       {/* Sidebar */}
       <div className="w-64 bg-gray-800 text-white">
         <div className="p-4">
-          <h1 className="text-xl font-bold">K E Y F L O W</h1>
+          <h1 className="text-xl font-bold">Access System</h1>
         </div>
         <nav className="mt-4">
-  <button
-    onClick={() => setCurrentPage('dashboard')}
-    className={`w-full p-4 flex items-center gap-2 ${
-      currentPage === 'dashboard' ? 'bg-gray-700' : 'hover:bg-gray-700'
-    }`}
-  >
-    <Layout size={20} />
-    Dashboard
-  </button>
-  <button
-    onClick={() => setCurrentPage('devices')}
-    className={`w-full p-4 flex items-center gap-2 ${
-      currentPage === 'devices' ? 'bg-gray-700' : 'hover:bg-gray-700'
-    }`}
-  >
-    <Settings size={20} />
-    Devices
-  </button>
-  <button
-    onClick={() => setCurrentPage('activity')}
-    className={`w-full p-4 flex items-center gap-2 ${
-      currentPage === 'activity' ? 'bg-gray-700' : 'hover:bg-gray-700'
-    }`}
-  >
-    <Activity size={20} />
-    User Activity
-  </button>
-  <button
-    onClick={() => setCurrentPage('register')}
-    className={`w-full p-4 flex items-center gap-2 ${
-      currentPage === 'register' ? 'bg-gray-700' : 'hover:bg-gray-700'
-    }`}
-  >
-    <UserPlus size={20} />
-    Register User
-  </button>
-  <button
-    onClick={() => setCurrentPage('profile')}
-    className={`w-full p-4 flex items-center gap-2 ${
-      currentPage === 'profile' ? 'bg-gray-700' : 'hover:bg-gray-700'
-    }`}
-  >
-    <User size={20} />
-    Profile
-  </button>
-  {/* Add this new button */}
- 
-</nav>
+          <button
+            onClick={() => setCurrentPage('dashboard')}
+            className={`w-full p-4 flex items-center gap-2 ${
+              currentPage === 'dashboard' ? 'bg-gray-700' : 'hover:bg-gray-700'
+            }`}
+          >
+            <Layout size={20} />
+            Dashboard
+          </button>
+          <button
+            onClick={() => setCurrentPage('activity')}
+            className={`w-full p-4 flex items-center gap-2 ${
+              currentPage === 'activity' ? 'bg-gray-700' : 'hover:bg-gray-700'
+            }`}
+          >
+            <Activity size={20} />
+            User Activity
+          </button>
+          <button
+            onClick={() => setCurrentPage('register')}
+            className={`w-full p-4 flex items-center gap-2 ${
+              currentPage === 'register' ? 'bg-gray-700' : 'hover:bg-gray-700'
+            }`}
+          >
+            <UserPlus size={20} />
+            Register User
+          </button>
+          <button
+            onClick={() => setCurrentPage('profile')}
+            className={`w-full p-4 flex items-center gap-2 ${
+              currentPage === 'profile' ? 'bg-gray-700' : 'hover:bg-gray-700'
+            }`}
+          >
+            <User size={20} />
+            Profile
+          </button>
+          <button
+            onClick={() => setCurrentPage('devices')}
+            className={`w-full p-4 flex items-center gap-2 ${
+              currentPage === 'devices' ? 'bg-gray-700' : 'hover:bg-gray-700'
+            }`}
+          >
+            <Settings size={20} />
+            Devices
+          </button>
+        </nav>
       </div>
 
-        {/* Main content */}
-        <div className="flex-1 bg-gray-50">
-            {currentPage === 'dashboard' && <Dashboard />}
-            {currentPage === 'activity' && <UserActivity />}
-            {currentPage === 'register' && <RegisterUser />}
-            {currentPage === 'profile' && <Profile />}
-            {currentPage === 'devices' && <DeviceManagement />}
-        </div>
+      {/* Main content */}
+      <div className="flex-1 bg-gray-50">
+        {currentPage === 'dashboard' && <Dashboard />}
+        {currentPage === 'activity' && <UserActivity />}
+        {currentPage === 'register' && <RegisterUser />}
+        {currentPage === 'profile' && <Profile />}
+      </div>
     </div>
   );
 };

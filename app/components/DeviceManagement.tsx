@@ -4,8 +4,46 @@ import React, { useState, useEffect } from 'react';
 import { Settings, Plus, AlertCircle, Info } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
-// Mock data for devices
-const mockDevices = [
+interface DevicePermissions {
+  cardAccess: boolean;
+  pinAccess: boolean;
+  biometric: boolean;
+  scheduling: boolean;
+}
+
+interface DeviceFeatures {
+  antiPassback: boolean;
+  timeZones: boolean;
+  visitorManagement: boolean;
+}
+
+interface DeviceEvent {
+  id: number;
+  timestamp: string;
+  type: string;
+  user: string;
+  details: string;
+}
+
+interface Device {
+  id: number;
+  name: string;
+  type: string;
+  status: string;
+  permissions: DevicePermissions;
+  features: DeviceFeatures;
+  events: DeviceEvent[];
+}
+
+interface NewDevice {
+  name: string;
+  type: string;
+  permissions: DevicePermissions;
+  features: DeviceFeatures;
+}
+
+// Mock data
+const mockDevices: Device[] = [
   {
     id: 1,
     name: "Main Entrance",
@@ -51,10 +89,10 @@ const mockDevices = [
   }
 ];
 
-const DeviceManagement = () => {
-  const [devices, setDevices] = useState(mockDevices);
-  const [showAddDevice, setShowAddDevice] = useState(false);
-  const [newDevice, setNewDevice] = useState({
+const DeviceManagement: React.FC = () => {
+  const [devices, setDevices] = useState<Device[]>(mockDevices);
+  const [showAddDevice, setShowAddDevice] = useState<boolean>(false);
+  const [newDevice, setNewDevice] = useState<NewDevice>({
     name: '',
     type: 'Access Control',
     permissions: {
@@ -71,22 +109,13 @@ const DeviceManagement = () => {
   });
 
   // Mock API calls
-  const fetchDevices = async () => {
-    // Simulating API call
+  const fetchDevices = async (): Promise<Device[]> => {
     return mockDevices;
   };
 
-//   const updateDeviceSettings = async (deviceId, settings) => {
-//     // Simulating API call
-//     setDevices(devices.map(device => 
-//       device.id === deviceId ? { ...device, ...settings } : device
-//     ));
-//   };
-
-  const addNewDevice = async (device) => {
-    // Simulating API call
+  const addNewDevice = async (device: NewDevice): Promise<void> => {
     const newId = devices.length + 1;
-    const newDeviceWithId = {
+    const newDeviceWithId: Device = {
       ...device,
       id: newId,
       status: 'Online',
@@ -99,7 +128,7 @@ const DeviceManagement = () => {
     fetchDevices();
   }, []);
 
-  const handlePermissionChange = (deviceId, permission) => {
+  const handlePermissionChange = (deviceId: number, permission: keyof DevicePermissions): void => {
     const updatedDevices = devices.map(device => {
       if (device.id === deviceId) {
         return {
@@ -115,7 +144,7 @@ const DeviceManagement = () => {
     setDevices(updatedDevices);
   };
 
-  const handleFeatureToggle = (deviceId, feature) => {
+  const handleFeatureToggle = (deviceId: number, feature: keyof DeviceFeatures): void => {
     const updatedDevices = devices.map(device => {
       if (device.id === deviceId) {
         return {
@@ -131,7 +160,7 @@ const DeviceManagement = () => {
     setDevices(updatedDevices);
   };
 
-  const handleAddDevice = () => {
+  const handleAddDevice = (): void => {
     addNewDevice(newDevice);
     setShowAddDevice(false);
     setNewDevice({
@@ -233,7 +262,7 @@ const DeviceManagement = () => {
             <div className="mb-6">
               <h4 className="text-lg font-medium mb-2">Permissions</h4>
               <div className="grid grid-cols-2 gap-4">
-                {Object.entries(device.permissions).map(([key, value]) => (
+                {(Object.entries(device.permissions) as [keyof DevicePermissions, boolean][]).map(([key, value]) => (
                   <div key={key} className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -251,7 +280,7 @@ const DeviceManagement = () => {
             <div className="mb-6">
               <h4 className="text-lg font-medium mb-2">Features</h4>
               <div className="grid grid-cols-2 gap-4">
-                {Object.entries(device.features).map(([key, value]) => (
+                {(Object.entries(device.features) as [keyof DeviceFeatures, boolean][]).map(([key, value]) => (
                   <div key={key} className="flex items-center gap-2">
                     <input
                       type="checkbox"
