@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Schedule {
   days: string[];
@@ -13,6 +14,13 @@ interface TemporaryAccess {
   startTime: string;
   endTime: string;
 }
+
+interface Door {
+  deviceId: string;
+  name: string;
+}
+
+type AccessMethod = 'nfc' | 'virtualKeypad' | 'key';
 
 interface UserConfig {
   name: string;
@@ -37,11 +45,20 @@ interface UserConfig {
     door3: boolean;
     frontGate: boolean;
   };
+  selectedDoors: { [key: string]: boolean };
+  selectedMethods: { [key: string]: AccessMethod | '' };
+  nfcData: { [key: string]: string };
   schedule: Schedule | null;
   temporaryAccess: TemporaryAccess | null;
 }
 
 const AddNewUser = () => {
+  const [doors, setDoors] = useState<Door[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [error, setError] = useState('');
+  const [currentDeviceId, setCurrentDeviceId] = useState('');
+
   const [userConfig, setUserConfig] = useState<UserConfig>({
     name: '',
     roles: {
@@ -65,11 +82,50 @@ const AddNewUser = () => {
       door3: false,
       frontGate: false
     },
+    selectedDoors: {},
+    selectedMethods: {},
+    nfcData: {},
     schedule: null,
     temporaryAccess: null
   });
 
-  // Type-safe handlers for each category
+  const accessMethods: { [key in AccessMethod]: string } = {
+    nfc: 'NFC Card/Tag',
+    virtualKeypad: 'Virtual Keypad',
+    key: 'Physical Key'
+  };
+
+  useEffect(() => {
+    fetchDoors();
+  }, []);
+
+  const fetchDoors = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/doors');
+      const data = await response.json();
+      setDoors(data);
+      // Initialize selectedDoors state
+      const doorState = data.reduce((acc: { [key: string]: boolean }, door: Door) => {
+        acc[door.deviceId] = false;
+        return acc;
+      }, {});
+      const methodState = data.reduce((acc: { [key: string]: AccessMethod | '' }, door: Door) => {
+        acc[door.deviceId] = '';
+        return acc;
+      }, {});
+      setUserConfig(prev => ({ 
+        ...prev, 
+        selectedDoors: doorState,
+        selectedMethods: methodState
+      }));
+    } catch (err) {
+      setError('Failed to fetch doors');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRoleChange = (field: keyof UserConfig['roles']) => {
     setUserConfig(prev => ({
       ...prev,
@@ -90,7 +146,6 @@ const AddNewUser = () => {
         }
       };
 
-      // Initialize schedule when scheduled is selected
       if (field === 'scheduled' && !prev.accessType.scheduled) {
         newConfig.schedule = {
           days: [],
@@ -101,7 +156,6 @@ const AddNewUser = () => {
         newConfig.schedule = null;
       }
 
-      // Initialize temporary access when temporary is selected
       if (field === 'temporary' && !prev.accessType.temporary) {
         newConfig.temporaryAccess = {
           startDate: '',
@@ -117,44 +171,71 @@ const AddNewUser = () => {
     });
   };
 
-  const handleTokenTypeChange = (field: keyof UserConfig['tokenTypes']) => {
+  const handleDoorSelect = (deviceId: string) => {
     setUserConfig(prev => ({
       ...prev,
-      tokenTypes: {
-        ...prev.tokenTypes,
-        [field]: !prev.tokenTypes[field]
+      selectedDoors: {
+        ...prev.selectedDoors,
+        [deviceId]: !prev.selectedDoors[deviceId]
+      },
+      selectedMethods: {
+        ...prev.selectedMethods,
+        [deviceId]: prev.selectedDoors[deviceId] ? '' : prev.selectedMethods[deviceId]
       }
     }));
   };
 
-  const handleDoorPermissionChange = (field: keyof UserConfig['doorPermissions']) => {
+  const handleMethodSelect = (deviceId: string, method: AccessMethod) => {
     setUserConfig(prev => ({
       ...prev,
-      doorPermissions: {
-        ...prev.doorPermissions,
-        [field]: !prev.doorPermissions[field]
+      selectedMethods: {
+        ...prev.selectedMethods,
+        [deviceId]: method
       }
     }));
+
+    if (method === 'nfc') {
+      startNFCScan(deviceId);
+    }
   };
 
-  const handleScheduleChange = (field: keyof Schedule, value: string | string[]) => {
-    setUserConfig(prev => ({
-      ...prev,
-      schedule: prev.schedule ? {
-        ...prev.schedule,
-        [field]: value
-      } : null
-    }));
+  const startNFCScan = async (deviceId: string) => {
+    setScanning(true);
+    setCurrentDeviceId(deviceId);
+    try {
+      const response = await fetch('/api/scan-nfc', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: userConfig.name,
+          deviceId
+        })
+      });
+      
+      const data = await response.json();
+      setUserConfig(prev => ({
+        ...prev,
+        nfcData: {
+          ...prev.nfcData,
+          [deviceId]: data.nfcId
+        }
+      }));
+    } catch (err) {
+      setError('NFC scan failed');
+    } finally {
+      setScanning(false);
+      setCurrentDeviceId('');
+    }
   };
 
-  const handleTemporaryAccessChange = (field: keyof TemporaryAccess, value: string) => {
-    setUserConfig(prev => ({
-      ...prev,
-      temporaryAccess: prev.temporaryAccess ? {
-        ...prev.temporaryAccess,
-        [field]: value
-      } : null
-    }));
+  const isFormValid = () => {
+    return userConfig.name && 
+           Object.values(userConfig.selectedDoors).some(selected => selected) &&
+           Object.entries(userConfig.selectedDoors)
+             .filter(([_, selected]) => selected)
+             .every(([deviceId]) => userConfig.selectedMethods[deviceId] !== '');
   };
 
   return (
@@ -163,13 +244,19 @@ const AddNewUser = () => {
         <CardTitle className="text-2xl">Add New User</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
         {/* Name Input */}
         <div>
           <label className="block text-sm font-medium mb-1">Name</label>
           <input
             type="text"
             value={userConfig.name}
-            onChange={(e) => setUserConfig(prev => ({ ...prev, name: e.target.value }))}
+            onChange={(e) => setUserConfig(prev => ({...prev, name: e.target.value}))}
             className="w-full p-2 border rounded"
           />
         </div>
@@ -194,7 +281,7 @@ const AddNewUser = () => {
 
         {/* Access Type Section */}
         <div>
-          <h3 className="font-medium mb-2">User Type</h3>
+          <h3 className="font-medium mb-2">Access Type</h3>
           <div className="grid grid-cols-3 gap-4">
             {Object.entries(userConfig.accessType).map(([type, checked]) => (
               <label key={type} className="flex items-center space-x-2">
@@ -210,140 +297,63 @@ const AddNewUser = () => {
           </div>
         </div>
 
-        {/* Schedule Section - Only shown when Scheduled is selected */}
-        {userConfig.accessType.scheduled && userConfig.schedule && (
-          <div className="border p-4 rounded">
-            <h3 className="font-medium mb-2">Schedule Configuration</h3>
+        {/* Door Access Section */}
+        <div>
+          <h3 className="font-medium mb-2">Door Access</h3>
+          {loading ? (
+            <div>Loading doors...</div>
+          ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-7 gap-2">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                  <label key={day} className="flex items-center space-x-1">
+              {doors.map(door => (
+                <div key={door.deviceId} className="space-y-2">
+                  <label className="flex items-center space-x-2">
                     <input
                       type="checkbox"
-                      checked={userConfig.schedule?.days.includes(day)}
-                      onChange={() => {
-                        const days = userConfig.schedule?.days || [];
-                        const newDays = days.includes(day) 
-                          ? days.filter(d => d !== day)
-                          : [...days, day];
-                        handleScheduleChange('days', newDays);
-                      }}
+                      checked={userConfig.selectedDoors[door.deviceId]}
+                      onChange={() => handleDoorSelect(door.deviceId)}
                       className="rounded"
                     />
-                    <span>{day}</span>
+                    <span>{door.name}</span>
                   </label>
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm mb-1">Start Time</label>
-                  <input
-                    type="time"
-                    value={userConfig.schedule.startTime}
-                    onChange={(e) => handleScheduleChange('startTime', e.target.value)}
-                    className="w-full p-2 border rounded"
-                  />
+                  
+                  {userConfig.selectedDoors[door.deviceId] && (
+                    <div className="ml-6 space-y-2">
+                      <p className="text-sm font-medium">Select Access Method:</p>
+                      {(Object.entries(accessMethods) as [AccessMethod, string][]).map(([method, label]) => (
+                        <label key={method} className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name={`method-${door.deviceId}`}
+                            checked={userConfig.selectedMethods[door.deviceId] === method}
+                            onChange={() => handleMethodSelect(door.deviceId, method)}
+                            className="rounded"
+                          />
+                          <span>{label}</span>
+                          {method === 'nfc' && 
+                           userConfig.selectedMethods[door.deviceId] === 'nfc' && (
+                            <span className="ml-2">
+                              {scanning && currentDeviceId === door.deviceId 
+                                ? 'Scanning...' 
+                                : userConfig.nfcData[door.deviceId] 
+                                  ? `NFC ID: ${userConfig.nfcData[door.deviceId]}`
+                                  : ''}
+                            </span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm mb-1">End Time</label>
-                  <input
-                    type="time"
-                    value={userConfig.schedule.endTime}
-                    onChange={(e) => handleScheduleChange('endTime', e.target.value)}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
-        )}
-
-        {/* Temporary Access Section - Only shown when Temporary is selected */}
-        {userConfig.accessType.temporary && userConfig.temporaryAccess && (
-          <div className="border p-4 rounded">
-            <h3 className="font-medium mb-2">Temporary Access Period</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm mb-1">Start Date</label>
-                <input
-                  type="date"
-                  value={userConfig.temporaryAccess.startDate}
-                  onChange={(e) => handleTemporaryAccessChange('startDate', e.target.value)}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">End Date</label>
-                <input
-                  type="date"
-                  value={userConfig.temporaryAccess.endDate}
-                  onChange={(e) => handleTemporaryAccessChange('endDate', e.target.value)}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Start Time</label>
-                <input
-                  type="time"
-                  value={userConfig.temporaryAccess.startTime}
-                  onChange={(e) => handleTemporaryAccessChange('startTime', e.target.value)}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">End Time</label>
-                <input
-                  type="time"
-                  value={userConfig.temporaryAccess.endTime}
-                  onChange={(e) => handleTemporaryAccessChange('endTime', e.target.value)}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Token Types Section */}
-        <div>
-          <h3 className="font-medium mb-2">Token Types</h3>
-          <div className="grid grid-cols-3 gap-4">
-            {Object.entries(userConfig.tokenTypes).map(([type, checked]) => (
-              <label key={type} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => handleTokenTypeChange(type as keyof UserConfig['tokenTypes'])}
-                  className="rounded"
-                />
-                <span className="capitalize">{type.replace(/([A-Z])/g, ' $1')}</span>
-              </label>
-            ))}
-          </div>
+          )}
         </div>
 
-        {/* Door Permissions Section */}
-        <div>
-          <h3 className="font-medium mb-2">Permissions</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {Object.entries(userConfig.doorPermissions).map(([door, checked]) => (
-              <label key={door} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => handleDoorPermissionChange(door as keyof UserConfig['doorPermissions'])}
-                  className="rounded"
-                />
-                <span className="capitalize">{door.replace(/([A-Z])/g, ' $1')}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Submit Button */}
         <div className="pt-4">
           <button
             onClick={() => console.log('User configuration:', userConfig)}
-            className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+            disabled={!isFormValid()}
+            className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             Add User
           </button>
