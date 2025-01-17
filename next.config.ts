@@ -5,4 +5,7 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+module.exports = {
+  output: 'export',  // Enable static export
+  // Other configurations can go here
+};

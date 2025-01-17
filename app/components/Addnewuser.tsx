@@ -51,14 +51,20 @@ interface UserConfig {
   schedule: Schedule | null;
   temporaryAccess: TemporaryAccess | null;
 }
-
+interface Device {
+  deviceId: string;
+  authorizedUsers: string[];
+  name: string;
+  status: string;
+  createdAt?: string;
+}
 const AddNewUser = () => {
   const [doors, setDoors] = useState<Door[]>([]);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState('');
   const [currentDeviceId, setCurrentDeviceId] = useState('');
-
+  const [selecteddoor,setSelecteddoor] = useState<Door>({name:'',deviceId:''})
   const [userConfig, setUserConfig] = useState<UserConfig>({
     name: '',
     roles: {
@@ -101,30 +107,58 @@ const AddNewUser = () => {
 
   const fetchDoors = async () => {
     try {
+      const token = localStorage.getItem('authToken'); // Retrieve the token dynamically
+  
+      if (!token) {
+        throw new Error('Authorization token is missing');
+      }
+      console.log(token);
       setLoading(true);
-      const response = await fetch('/api/doors');
-      const data = await response.json();
-      setDoors(data);
-      // Initialize selectedDoors state
-      const doorState = data.reduce((acc: { [key: string]: boolean }, door: Door) => {
-        acc[door.deviceId] = false;
+      const response = await fetch(
+        'https://sxera9zsa1.execute-api.ap-southeast-2.amazonaws.com/dev/device',  
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch devices');
+      }
+  
+      const devices: Device[] = await response.json();
+      const activeDoors = devices.filter(device => device.status === 'active');
+      
+      setDoors(activeDoors.map(device => ({
+        deviceId: device.deviceId,
+        name: device.name
+      })));
+  
+      // Initialize selectedDoors state with all doors set to false
+      const doorState = activeDoors.reduce((acc: { [key: string]: boolean }, device) => {
+        acc[device.deviceId] = false;
         return acc;
       }, {});
-      const methodState = data.reduce((acc: { [key: string]: AccessMethod | '' }, door: Door) => {
-        acc[door.deviceId] = '';
-        return acc;
-      }, {});
-      setUserConfig(prev => ({ 
-        ...prev, 
+      
+      setUserConfig(prev => ({
+        ...prev,
         selectedDoors: doorState,
-        selectedMethods: methodState
+        selectedMethods: Object.keys(doorState).reduce((acc: { [key: string]: AccessMethod | '' }, deviceId) => {
+          acc[deviceId] = '';
+          return acc;
+        }, {})
       }));
+  
     } catch (err) {
       setError('Failed to fetch doors');
+      console.error('Error fetching doors:', err);
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleRoleChange = (field: keyof UserConfig['roles']) => {
     setUserConfig(prev => ({
@@ -135,6 +169,8 @@ const AddNewUser = () => {
       }
     }));
   };
+
+
 
   const handleAccessTypeChange = (field: keyof UserConfig['accessType']) => {
     setUserConfig(prev => {
@@ -185,7 +221,13 @@ const AddNewUser = () => {
     }));
   };
 
-  const handleMethodSelect = (deviceId: string, method: AccessMethod) => {
+  const handleMethodSelect = (deviceId: string, doorname:string,method: AccessMethod) => {
+
+    setSelecteddoor(prev => ({
+      ...prev,
+      name:doorname,
+      deviceId: deviceId
+    }));
     setUserConfig(prev => ({
       ...prev,
       selectedMethods: {
@@ -199,13 +241,51 @@ const AddNewUser = () => {
     }
   };
 
+  const addUserNFC = async (deviceId: string,doorName:string,nfcData:string) => {
+    try {
+     
+        const token = localStorage.getItem('authToken'); // Retrieve the token dynamically
+  
+        if (!token) {
+          throw new Error('Authorization token is missing');
+        }
+      const response = await fetch('https://sxera9zsa1.execute-api.ap-southeast-2.amazonaws.com/dev/device/addnfc', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: userConfig.name,
+          deviceId,
+          nfc_str:nfcData,
+          doorname:doorName
+        })
+      });
+      
+      const data = await response.json();
+      if (data.statusCode=200){
+        alert("User Added")
+      }
+    } catch (err) {
+      setError('err');
+    } finally {
+    }
+  };
   const startNFCScan = async (deviceId: string) => {
     setScanning(true);
     setCurrentDeviceId(deviceId);
     try {
-      const response = await fetch('/api/scan-nfc', {
+     
+        const token = localStorage.getItem('authToken'); // Retrieve the token dynamically
+  
+        if (!token) {
+          throw new Error('Authorization token is missing');
+        }
+      const response = await fetch('https://sxera9zsa1.execute-api.ap-southeast-2.amazonaws.com/dev/device/scan-nfc', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -325,7 +405,7 @@ const AddNewUser = () => {
                             type="radio"
                             name={`method-${door.deviceId}`}
                             checked={userConfig.selectedMethods[door.deviceId] === method}
-                            onChange={() => handleMethodSelect(door.deviceId, method)}
+                            onChange={() => handleMethodSelect(door.deviceId, door.name,method) }
                             className="rounded"
                           />
                           <span>{label}</span>
@@ -337,6 +417,7 @@ const AddNewUser = () => {
                                 : userConfig.nfcData[door.deviceId] 
                                   ? `NFC ID: ${userConfig.nfcData[door.deviceId]}`
                                   : ''}
+                                  
                             </span>
                           )}
                         </label>
@@ -351,7 +432,7 @@ const AddNewUser = () => {
 
         <div className="pt-4">
           <button
-            onClick={() => console.log('User configuration:', userConfig)}
+            onClick={() => addUserNFC(selecteddoor.deviceId,selecteddoor.name,userConfig.nfcData[selecteddoor.deviceId])}
             disabled={!isFormValid()}
             className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
