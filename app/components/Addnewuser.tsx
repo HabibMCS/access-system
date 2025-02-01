@@ -65,6 +65,10 @@ const AddNewUser = () => {
   const [error, setError] = useState('');
   const [currentDeviceId, setCurrentDeviceId] = useState('');
   const [selecteddoor,setSelecteddoor] = useState<Door>({name:'',deviceId:''})
+  const [showKeypad, setShowKeypad] = useState(false);
+  const [pin, setPin] = useState("");
+  const allowedKeys = ["A", "B", "C", "D", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
   const [userConfig, setUserConfig] = useState<UserConfig>({
     name: '',
     roles: {
@@ -159,6 +163,16 @@ const AddNewUser = () => {
     }
   };
 
+  const handleKeyPress = (key) => {
+    if (pin.length < 6) {
+      setPin((prev) => prev + key);
+    }
+  };
+
+  // Function to delete last character
+  const handleDelete = () => {
+    setPin((prev) => prev.slice(0, -1));
+  };
 
   const handleRoleChange = (field: keyof UserConfig['roles']) => {
     setUserConfig(prev => ({
@@ -170,6 +184,11 @@ const AddNewUser = () => {
     }));
   };
 
+
+  const handlekeySubmit = () => {
+    console.log("Entered PIN:", pin);
+    setShowKeypad(false);
+  };
 
 
   const handleAccessTypeChange = (field: keyof UserConfig['accessType']) => {
@@ -239,6 +258,9 @@ const AddNewUser = () => {
     if (method === 'nfc') {
       startNFCScan(deviceId);
     }
+    // if (method === 'virtualKeypad') {
+    //   get(deviceId);
+    // }
   };
 
   const addUserNFC = async (deviceId: string,doorName:string,nfcData:string) => {
@@ -259,7 +281,8 @@ const AddNewUser = () => {
           username: userConfig.name,
           deviceId,
           nfc_str:nfcData,
-          doorname:doorName
+          doorname:doorName,
+          virtualPin:pin
         })
       });
       
@@ -420,6 +443,53 @@ const AddNewUser = () => {
                                   
                             </span>
                           )}
+                          {method === "virtualKeypad" &&
+                              userConfig.selectedMethods[door.deviceId] === "virtualKeypad" && (
+                                <>
+                                  <button
+                                    className="ml-2 px-4 py-2 bg-blue-500 text-white rounded"
+                                    onClick={() => setShowKeypad(true)}
+                                  >
+                                    Enter PIN
+                                  </button>
+
+                                  {showKeypad===true && (
+                                    <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50">
+                                      <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+                                        <h2 className="text-lg font-semibold mb-2">Enter 6-digit PIN</h2>
+
+                                        <div className="mb-4 p-2 border text-lg">{pin || "______"}</div>
+
+                                        {/* Keypad Buttons */}
+                                        <div className="grid grid-cols-4 gap-2">
+                                          {allowedKeys.map((key) => (
+                                            <button
+                                              key={key}
+                                              className="px-4 py-2 bg-gray-200 rounded text-xl"
+                                              onClick={() => handleKeyPress(key)}
+                                            >
+                                              {key}
+                                            </button>
+                                          ))}
+                                        </div>
+
+                                        {/* Delete & Submit */}
+                                        <div className="mt-4 flex justify-between">
+                                          <button className="px-4 py-2 bg-red-500 text-white rounded" onClick={handleDelete}>
+                                            Delete
+                                          </button>
+                                          <button
+                                            className={`px-4 py-2 rounded ${pin.length === 6 ? "bg-green-500 text-white" : "bg-gray-300"}`}
+                                            onClick={handlekeySubmit}
+                                            disabled={pin.length !== 6}
+                                          >
+                                            Submit
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}          </>
+                                )}
                         </label>
                       ))}
                     </div>
