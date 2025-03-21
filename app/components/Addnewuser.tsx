@@ -24,11 +24,8 @@ type AccessMethod = 'nfc' | 'virtualKeypad' | 'key';
 
 interface UserConfig {
   name: string;
-  roles: {
-    installer: boolean;
-    admin: boolean;
-    passKeyHolder: boolean;
-  };
+  email: string;
+  phoneNumber: string;
   accessType: {
     permanent: boolean;
     scheduled: boolean;
@@ -71,11 +68,8 @@ const AddNewUser = () => {
 
   const [userConfig, setUserConfig] = useState<UserConfig>({
     name: '',
-    roles: {
-      installer: false,
-      admin: false,
-      passKeyHolder: false
-    },
+    email: '',
+    phoneNumber: '',
     accessType: {
       permanent: false,
       scheduled: false,
@@ -118,8 +112,12 @@ const AddNewUser = () => {
       }
       console.log(token);
       setLoading(true);
+      console.log({NEXT_PUBLIC_NFC_DOORS_STRING: process.env.NEXT_PUBLIC_NFC_DOORS_STRING})
+      console.log({NEXT_PUBLIC_NFC_SCAN_STRING: process.env.NEXT_PUBLIC_NFC_SCAN_STRING})
+      console.log({NEXT_PUBLIC_NFC_ADD_STRING: process.env.NEXT_PUBLIC_NFC_ADD_STRING})
+
       const response = await fetch(
-        'https://sxera9zsa1.execute-api.ap-southeast-2.amazonaws.com/dev/device',  
+        `${process.env.NEXT_PUBLIC_NFC_DOORS_STRING}`,  
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -163,7 +161,7 @@ const AddNewUser = () => {
     }
   };
 
-  const handleKeyPress = (key) => {
+  const handleKeyPress = (key: string) => {
     if (pin.length < 6) {
       setPin((prev) => prev + key);
     }
@@ -174,15 +172,15 @@ const AddNewUser = () => {
     setPin((prev) => prev.slice(0, -1));
   };
 
-  const handleRoleChange = (field: keyof UserConfig['roles']) => {
-    setUserConfig(prev => ({
-      ...prev,
-      roles: {
-        ...prev.roles,
-        [field]: !prev.roles[field]
-      }
-    }));
-  };
+  // const handleRoleChange = (field: keyof UserConfig['roles']) => {
+  //   setUserConfig(prev => ({
+  //     ...prev,
+  //     roles: {
+  //       ...prev.roles,
+  //       [field]: !prev.roles[field]
+  //     }
+  //   }));
+  // };
 
 
   const handlekeySubmit = () => {
@@ -271,7 +269,7 @@ const AddNewUser = () => {
         if (!token) {
           throw new Error('Authorization token is missing');
         }
-      const response = await fetch('https://sxera9zsa1.execute-api.ap-southeast-2.amazonaws.com/dev/device/addnfc', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_NFC_ADD_STRING}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -305,7 +303,7 @@ const AddNewUser = () => {
         if (!token) {
           throw new Error('Authorization token is missing');
         }
-      const response = await fetch('https://sxera9zsa1.execute-api.ap-southeast-2.amazonaws.com/dev/device/scan-nfc', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_NFC_SCAN_STRING}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -364,8 +362,30 @@ const AddNewUser = () => {
           />
         </div>
 
-        {/* Roles Section */}
+        {/* Email Input */}
         <div>
+          <label className="block text-sm font-medium mb-1">Email Address</label>
+          <input
+            type="email"
+            value={userConfig.email}
+            onChange={(e) => setUserConfig(prev => ({...prev, email: e.target.value}))}
+            className="w-full p-2 border rounded"
+          />
+        </div>
+
+        {/* Phone Number Input */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Phone Number</label>
+          <input
+            type="text"
+            value={userConfig.phoneNumber}
+            onChange={(e) => setUserConfig(prev => ({...prev, phoneNumber: e.target.value}))}
+            className="w-full p-2 border rounded"
+          />
+        </div>
+
+        {/* Roles Section */}
+        {/* <div>
           <h3 className="font-medium mb-2">Roles</h3>
           <div className="grid grid-cols-3 gap-4">
             {Object.entries(userConfig.roles).map(([role, checked]) => (
@@ -380,7 +400,7 @@ const AddNewUser = () => {
               </label>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* Access Type Section */}
         <div>

@@ -497,7 +497,7 @@ const UserAccessSystem: React.FC = () => {
       <div className="flex-1 bg-gray-50 overflow-auto">
         <div className="max-w-7xl mx-auto p-4">
           {currentPage === 'home' && <Homepage onNavigate={setCurrentPage} />}
-          {currentPage === 'users' && <UserManagement />}
+          {currentPage === 'users' && <UserManagement onNavigate={setCurrentPage} />}
           {currentPage === 'devices' && <DeviceManagement />}
           {currentPage === 'addUser' && <AddNewUser />}
           {currentPage === 'deviceSettings' && <DeviceSettings />}

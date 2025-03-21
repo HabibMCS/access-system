@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Search, UserPlus, Clock, DoorClosed, Settings, AlertCircle } from 'lucide-react';
+import { Search, UserPlus, Clock, DoorClosed, Settings, AlertCircle, Youtube } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 // Types
 interface User {
@@ -115,10 +116,11 @@ const mockDeviceLogs: DeviceLog[] = [
 ];
 
 // Users List Component
-const UsersList = () => {
+const UsersList = ( { onNavigate }: {onNavigate: React.Dispatch<React.SetStateAction<string>>}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
+  const {push} = useRouter()
   const filteredUsers = mockUsers.filter(user => 
     user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -141,7 +143,7 @@ const UsersList = () => {
             </div>
             <button 
               className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2"
-              onClick={() => console.log('Add new user')}
+              onClick={() => onNavigate("addUser")}
             >
               <UserPlus size={20} />
               Add New User
@@ -323,14 +325,14 @@ const DeviceLogs = () => {
 };
 
 // Main Component that combines all
-const UserManagement = () => {
+const UserManagement = ({onNavigate}: {onNavigate: React.Dispatch<React.SetStateAction<string>>}) => {
   return (
     <div className="space-y-6 p-6">
-      <UsersList />
-      <div className="grid grid-cols-2 gap-6">
+      <UsersList onNavigate={onNavigate}/>
+      {/* <div className="grid grid-cols-2 gap-6">
         <UserActivities />
         <DeviceLogs />
-      </div>
+      </div> */}
     </div>
   );
 };
