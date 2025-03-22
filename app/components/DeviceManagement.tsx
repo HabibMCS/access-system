@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 interface DevicePermissions {
   cardAccess: boolean;
   pinAccess: boolean;
-  biometric: boolean;
+  // biometric: boolean;
   scheduling: boolean;
 }
 
@@ -42,6 +42,11 @@ interface NewDevice {
   features: DeviceFeatures;
 }
 
+interface Door {
+  name: string;
+  deviceId: string;
+}
+
 // Mock data
 const mockDevices: Device[] = [
   {
@@ -52,7 +57,7 @@ const mockDevices: Device[] = [
     permissions: {
       cardAccess: true,
       pinAccess: true,
-      biometric: false,
+      // biometric: false,
       scheduling: true
     },
     features: {
@@ -63,7 +68,7 @@ const mockDevices: Device[] = [
     events: [
       { id: 1, timestamp: "2024-03-06 09:15:23", type: "Access Granted", user: "John Doe", details: "Card Access" },
       { id: 2, timestamp: "2024-03-06 09:30:45", type: "Invalid PIN", user: "Unknown", details: "Failed Attempt" },
-      { id: 3, timestamp: "2024-03-06 10:00:00", type: "Door Held Open", user: "System", details: "Warning" }
+      { id: 3, timestamp: "2024-03-06 10:00:00", type: "relay Held Open", user: "System", details: "Warning" }
     ]
   },
   {
@@ -74,7 +79,7 @@ const mockDevices: Device[] = [
     permissions: {
       cardAccess: true,
       pinAccess: true,
-      biometric: true,
+      // biometric: true,
       scheduling: true
     },
     features: {
@@ -89,6 +94,26 @@ const mockDevices: Device[] = [
   }
 ];
 
+const mockRelays: Door[] = [
+  {
+    deviceId: "front",
+    name: "Front relay"
+  },
+  {
+    deviceId: "back",
+    name: "Back relay"
+  },
+  {
+    deviceId: "store",
+    name: "Store relay"
+  },
+  {
+    deviceId: "main",
+    name: "Main relay"
+  }
+]
+
+
 const DeviceManagement: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>(mockDevices);
   const [showAddDevice, setShowAddDevice] = useState<boolean>(false);
@@ -98,7 +123,7 @@ const DeviceManagement: React.FC = () => {
     permissions: {
       cardAccess: false,
       pinAccess: false,
-      biometric: false,
+      // biometric: false,
       scheduling: false
     },
     features: {
@@ -108,10 +133,15 @@ const DeviceManagement: React.FC = () => {
     }
   });
 
-  // Mock API calls
+  // Mock API calls.
   const fetchDevices = async (): Promise<Device[]> => {
     return mockDevices;
   };
+
+  const fetchDoors = async (): Promise<Door[]> => {
+    return mockRelays;
+  };
+
 
   const addNewDevice = async (device: NewDevice): Promise<void> => {
     const newId = devices.length + 1;
@@ -126,6 +156,7 @@ const DeviceManagement: React.FC = () => {
 
   useEffect(() => {
     fetchDevices();
+    fetchDoors()
   }, []);
 
   const handlePermissionChange = (deviceId: number, permission: keyof DevicePermissions): void => {
@@ -169,7 +200,7 @@ const DeviceManagement: React.FC = () => {
       permissions: {
         cardAccess: false,
         pinAccess: false,
-        biometric: false,
+        // biometric: false,
         scheduling: false
       },
       features: {
@@ -184,13 +215,13 @@ const DeviceManagement: React.FC = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Device Management</h2>
-        <button
+        {/* <button
           onClick={() => setShowAddDevice(true)}
           className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-600"
         >
           <Plus size={20} />
           Add Relay
-        </button>
+        </button> */}
       </div>
 
       {/* Add Device Modal */}
@@ -277,7 +308,7 @@ const DeviceManagement: React.FC = () => {
             </div>
 
             {/* Features Section */}
-            <div className="mb-6">
+            {/* <div className="mb-6">
               <h4 className="text-lg font-medium mb-2">Features</h4>
               <div className="grid grid-cols-2 gap-4">
                 {(Object.entries(device.features) as [keyof DeviceFeatures, boolean][]).map(([key, value]) => (
@@ -292,10 +323,10 @@ const DeviceManagement: React.FC = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
 
             {/* Events Section */}
-            <div>
+            {/* <div>
               <h4 className="text-lg font-medium mb-2">Recent Events</h4>
               <div className="space-y-2">
                 {device.events.map(event => (
@@ -320,11 +351,41 @@ const DeviceManagement: React.FC = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
           </Card>
         ))}
       </div>
+
+      <div className='mt-10'>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">Relay Management</h2>
+        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {mockRelays.map(relay => (
+              <Card key={relay.deviceId} className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-gray-100 rounded-full">
+                      <Settings size={20} className="text-gray-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">{relay.name}</h3>
+                      <p className="text-sm text-gray-500">ID: {relay.deviceId}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => console.log(relay.name)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                  >
+                    View
+                  </button>
+                </div>
+              </Card>
+            ))}
+          </div>
+      </div>
     </div>
+
   );
 };
 
