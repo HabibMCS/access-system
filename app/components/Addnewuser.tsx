@@ -4,13 +4,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Schedule {
   days: string[];
-  startTime: string;
-  endTime: string;
+  startTime?: string|undefined;
+  endTime?: string| undefined;
+  dateRange?: {
+    startDate?: string|undefined;
+    endDate?: string|undefined;
+  };
 }
 
 interface TemporaryAccess {
-  startDate: string;
-  endDate: string;
+  date: string;
   startTime: string;
   endTime: string;
 }
@@ -172,17 +175,6 @@ const AddNewUser = () => {
     setPin((prev) => prev.slice(0, -1));
   };
 
-  // const handleRoleChange = (field: keyof UserConfig['roles']) => {
-  //   setUserConfig(prev => ({
-  //     ...prev,
-  //     roles: {
-  //       ...prev.roles,
-  //       [field]: !prev.roles[field]
-  //     }
-  //   }));
-  // };
-
-
   const handlekeySubmit = () => {
     console.log("Entered PIN:", pin);
     setShowKeypad(false);
@@ -194,31 +186,22 @@ const AddNewUser = () => {
       const newConfig = {
         ...prev,
         accessType: {
-          ...prev.accessType,
-          [field]: !prev.accessType[field]
-        }
+          permanent: false,
+          scheduled: false,
+          temporary: false,
+          [field]: true
+        },
+        schedule: null,
+        temporaryAccess: null
       };
 
-      if (field === 'scheduled' && !prev.accessType.scheduled) {
-        newConfig.schedule = {
-          days: [],
-          startTime: '',
-          endTime: ''
-        };
-      } else if (field === 'scheduled' && prev.accessType.scheduled) {
+      if (field === 'scheduled') {
         newConfig.schedule = null;
-      }
-
-      if (field === 'temporary' && !prev.accessType.temporary) {
-        newConfig.temporaryAccess = {
-          startDate: '',
-          endDate: '',
-          startTime: '',
-          endTime: ''
-        };
-      } else if (field === 'temporary' && prev.accessType.temporary) {
+      } else if (field === 'temporary') {
         newConfig.temporaryAccess = null;
       }
+
+      console.log({newConfig})
 
       return newConfig;
     });
@@ -256,9 +239,6 @@ const AddNewUser = () => {
     if (method === 'nfc') {
       startNFCScan(deviceId);
     }
-    // if (method === 'virtualKeypad') {
-    //   get(deviceId);
-    // }
   };
 
   const addUserNFC = async (deviceId: string,doorName:string,nfcData:string) => {
@@ -384,24 +364,6 @@ const AddNewUser = () => {
           />
         </div>
 
-        {/* Roles Section */}
-        {/* <div>
-          <h3 className="font-medium mb-2">Roles</h3>
-          <div className="grid grid-cols-3 gap-4">
-            {Object.entries(userConfig.roles).map(([role, checked]) => (
-              <label key={role} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => handleRoleChange(role as keyof UserConfig['roles'])}
-                  className="rounded"
-                />
-                <span className="capitalize">{role.replace(/([A-Z])/g, ' $1')}</span>
-              </label>
-            ))}
-          </div>
-        </div> */}
-
         {/* Access Type Section */}
         <div>
           <h3 className="font-medium mb-2">Access Type</h3>
@@ -409,8 +371,9 @@ const AddNewUser = () => {
             {Object.entries(userConfig.accessType).map(([type, checked]) => (
               <label key={type} className="flex items-center space-x-2">
                 <input
-                  type="checkbox"
+                  type="radio"
                   checked={checked}
+                  name="accessType"
                   onChange={() => handleAccessTypeChange(type as keyof UserConfig['accessType'])}
                   className="rounded"
                 />
@@ -418,6 +381,126 @@ const AddNewUser = () => {
               </label>
             ))}
           </div>
+
+          {/* Scheduled Access Options */}
+          {userConfig.accessType.scheduled && (
+            <div className="mt-4 ml-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Date Range</label>
+                <div className="flex space-x-4">
+                  <input
+                    type="date"
+                    value={userConfig.schedule?.dateRange?.startDate || ''}
+                    onChange={(e) => setUserConfig(prev => ({
+                      ...prev,
+                      schedule: {
+                        ...prev.schedule!,
+                        dateRange: {
+                          ...prev.schedule?.dateRange,
+                          startDate: e.target.value
+                        }
+                      }
+                    }))}
+                    className="border rounded p-2"
+                  />
+                  <input
+                    type="date"
+                    value={userConfig.schedule?.dateRange?.endDate || ''}
+                    onChange={(e) => setUserConfig(prev => ({
+                      ...prev,
+                      schedule: {
+                        ...prev.schedule!,
+                        dateRange: {
+                          ...prev.schedule?.dateRange,
+                          endDate: e.target.value
+                        }
+                      }
+                    }))}
+                    className="border rounded p-2"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Time Range</label>
+                <div className="flex space-x-4">
+                  <input
+                    type="time"
+                    value={userConfig.schedule?.startTime || ''}
+                    onChange={(e) => setUserConfig(prev => ({
+                      ...prev,
+                      schedule: {
+                        ...prev.schedule!,
+                        startTime: e.target.value
+                      }
+                    }))}
+                    className="border rounded p-2"
+                  />
+                  <input
+                    type="time"
+                    value={userConfig.schedule?.endTime || ''}
+                    onChange={(e) => setUserConfig(prev => ({
+                      ...prev,
+                      schedule: {
+                        ...prev.schedule!,
+                        endTime: e.target.value
+                      }
+                    }))}
+                    className="border rounded p-2"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Temporary Access Options */}
+          {userConfig.accessType.temporary && (
+            <div className="mt-4 ml-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Date</label>
+                <input
+                  type="date"
+                  value={userConfig.temporaryAccess?.date || ''}
+                  onChange={(e) => setUserConfig(prev => ({
+                    ...prev,
+                    temporaryAccess: {
+                      ...prev.temporaryAccess!,
+                      date: e.target.value
+                    }
+                  }))}
+                  className="border rounded p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Time Range</label>
+                <div className="flex space-x-4">
+                  <input
+                    type="time"
+                    value={userConfig.temporaryAccess?.startTime || ''}
+                    onChange={(e) => setUserConfig(prev => ({
+                      ...prev,
+                      temporaryAccess: {
+                        ...prev.temporaryAccess!,
+                        startTime: e.target.value
+                      }
+                    }))}
+                    className="border rounded p-2"
+                  />
+                  <input
+                    type="time"
+                    value={userConfig.temporaryAccess?.endTime || ''}
+                    onChange={(e) => setUserConfig(prev => ({
+                      ...prev,
+                      temporaryAccess: {
+                        ...prev.temporaryAccess!,
+                        endTime: e.target.value
+                      }
+                    }))}
+                    className="border rounded p-2"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Door Access Section */}
