@@ -45,12 +45,12 @@ const Addnewuser: React.FC<AddnewuserProps> = ({ userId }) => {
   // For date range selection: an array holding [startDate, endDate]
   const [accessType, setAccessType] = useState('permanent');
 
-  const [dateRange, setDateRange] = useState([null, null]);
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [startDate, endDate] = dateRange;
 
-  // For time range selection: separate states for start and end time
-  const [startTime, setStartTime] = useState(null);
-  const [endTime, setEndTime] = useState(null);
+  // Time range states with explicit typing
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
   const [isNfcScanning, setIsNfcScanning] = useState<boolean>(false);
   const [newDoorName, setNewDoorName] = useState<string>('');
   const [showAddDoor, setShowAddDoor] = useState<boolean>(false);
@@ -549,6 +549,7 @@ const Addnewuser: React.FC<AddnewuserProps> = ({ userId }) => {
                   <option value="guest">Guest</option>
                 </select>
               </div>
+              
               <div className="space-y-4">
       {/* Access Type Selector */}
       <div>
@@ -564,7 +565,6 @@ const Addnewuser: React.FC<AddnewuserProps> = ({ userId }) => {
         </select>
       </div>
 
-      {/* Conditionally render range selectors if access type is scheduled or temporary */}
       {(accessType === 'scheduled' || accessType === 'temporary') && (
         <div className="space-y-4">
           {/* Date Range Selector */}
@@ -574,7 +574,7 @@ const Addnewuser: React.FC<AddnewuserProps> = ({ userId }) => {
               selectsRange
               startDate={startDate}
               endDate={endDate}
-              onChange={(update) => setDateRange(update)}
+              onChange={(update: [Date | null, Date | null]) => setDateRange(update)}
               dateFormat="MMMM d, yyyy"
               placeholderText="Click to select a date range"
               className="w-full p-2 border rounded"
@@ -587,7 +587,7 @@ const Addnewuser: React.FC<AddnewuserProps> = ({ userId }) => {
             <div className="flex items-center space-x-2">
               <DatePicker
                 selected={startTime}
-                onChange={(time) => setStartTime(time)}
+                onChange={(time: Date | null) => setStartTime(time)}
                 showTimeSelect
                 showTimeSelectOnly
                 timeIntervals={15}
@@ -599,7 +599,7 @@ const Addnewuser: React.FC<AddnewuserProps> = ({ userId }) => {
               <span>to</span>
               <DatePicker
                 selected={endTime}
-                onChange={(time) => setEndTime(time)}
+                onChange={(time: Date | null) => setEndTime(time)}
                 showTimeSelect
                 showTimeSelectOnly
                 timeIntervals={15}
@@ -613,7 +613,8 @@ const Addnewuser: React.FC<AddnewuserProps> = ({ userId }) => {
         </div>
       )}
     </div>
-            </div>
+
+              </div>
             
             <button
               type="submit"
